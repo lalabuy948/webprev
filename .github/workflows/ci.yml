@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    branches:
+    tags:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: set up go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: build and test
+        run: |
+          export GO111MODULE=on
+          go get -v
+          go test -timeout=60s -v -covermode=count -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp
+          cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "_mock.go" > $GITHUB_WORKSPACE/profile.cov
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v1.2.1
+        with:
+          version: v1.29
