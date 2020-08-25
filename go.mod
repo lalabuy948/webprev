@@ -1,4 +1,4 @@
-module webprev
+module github.com/lalabuy948/webprev
 
 go 1.15
 

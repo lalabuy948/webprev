@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"webprev"
+
+	"github.com/lalabuy948/webprev"
 )
 
 func main() {
