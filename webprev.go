@@ -1,3 +1,4 @@
+// Package webprev provides easy extraction of website previews. Generic, Facebook and Twitter cards.
 package webprev
 
 import (
