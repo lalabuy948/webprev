@@ -2,7 +2,6 @@
 package webprev
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -44,6 +43,7 @@ func parseHtml(url string, body io.ReadCloser) (webPreview WebPreview) {
 		case tokenType == html.ErrorToken:
 			if webPreview.Generic.ImgURL == "" {
 				webPreview.Generic.ImgURL = webPreview.OpenGraph.ImgURL
+
 				if webPreview.Generic.ImgURL == "" {
 					webPreview.Generic.ImgURL = webPreview.Twitter.ImgURL
 				}
@@ -52,8 +52,10 @@ func parseHtml(url string, body io.ReadCloser) (webPreview WebPreview) {
 		case tokenType == html.StartTagToken:
 			token := tokenizer.Token()
 			parseMetaTags(url, token, &webPreview)
+
 			if token.Data == "title" && webPreview.Generic.Title == "" {
 				tt := tokenizer.Next()
+
 				if tt == html.TextToken {
 					token := tokenizer.Token()
 					webPreview.Generic.Title = token.Data
@@ -66,110 +68,68 @@ func parseHtml(url string, body io.ReadCloser) (webPreview WebPreview) {
 func parseMetaTags(url string, token html.Token, webPreview *WebPreview) {
 	if token.Data == "meta" {
 		attr := token.Attr
-		for i := 0; i < len(attr); i++ {
-			if i > 0 {
-				if isNameKey(attr[i-1]) && attr[i-1].Val == "title" && isContentKey(attr[i]) {
-					if webPreview.Generic.Title == "" {
-						webPreview.Generic.Title = attr[i].Val
-					}
-				}
-				if isNameKey(attr[i]) && attr[i].Val == "title" && isContentKey(attr[i-1]) {
-					if webPreview.Generic.Title == "" {
-						webPreview.Generic.Title = attr[i-1].Val
-					}
-				}
 
-				if isNameKey(attr[i-1]) && attr[i-1].Val == "description" && isContentKey(attr[i]) {
-					if webPreview.Generic.Description == "" {
-						webPreview.Generic.Description = attr[i].Val
-					}
-				}
-				if isNameKey(attr[i]) && attr[i].Val == "description" && isContentKey(attr[i-1]) {
-					if webPreview.Generic.Description == "" {
-						webPreview.Generic.Description = attr[i-1].Val
-					}
-				}
+		if isGivenMeta(attr, "title") {
+			webPreview.Generic.Title = extractMetaContentValue(attr)
+		}
+		if isGivenMeta(attr, "description") {
+			webPreview.Generic.Description = extractMetaContentValue(attr)
+		}
+		if isMetaItemprop(attr) {
+			webPreview.Generic.ImgURL = supplementImgURL(url, extractMetaContentValue(attr))
+		}
+		if isGivenMeta(attr, "og:title") {
+			webPreview.OpenGraph.Title = extractMetaContentValue(attr)
+		}
+		if isGivenMeta(attr, "og:description") {
+			webPreview.OpenGraph.Description = extractMetaContentValue(attr)
+		}
+		if isGivenMeta(attr, "og:image") {
+			webPreview.OpenGraph.ImgURL = supplementImgURL(url, extractMetaContentValue(attr))
+		}
+		if isGivenMeta(attr, "twitter:title") {
+			webPreview.Twitter.Title = extractMetaContentValue(attr)
+		}
+		if isGivenMeta(attr, "twitter:description") {
+			webPreview.Twitter.Description = extractMetaContentValue(attr)
+		}
+		if isGivenMeta(attr, "twitter:image") {
+			webPreview.Twitter.ImgURL = supplementImgURL(url, extractMetaContentValue(attr))
+		}
+	}
+}
 
-				if attr[i].Key == "itemprop" && attr[i].Val == "image" && isContentKey(attr[i-1]) {
-					if webPreview.Generic.ImgURL == "" {
-						webPreview.Generic.ImgURL = supplementImgURL(url, attr[i-1].Val)
-					}
-				}
-				if attr[i-1].Key == "itemprop" && attr[i-1].Val == "image" && isContentKey(attr[i]) {
-					if webPreview.Generic.ImgURL == "" {
-						webPreview.Generic.ImgURL = supplementImgURL(url, attr[i].Val)
-					}
-				}
-
-				if isPropertyKey(attr[i-1]) && attr[i-1].Val == "og:title" && isContentKey(attr[i]) {
-					if webPreview.OpenGraph.Title == "" {
-						webPreview.OpenGraph.Title = attr[i].Val
-					}
-				}
-				if isPropertyKey(attr[i]) && attr[i].Val == "og:title" && isContentKey(attr[i-1]) {
-					if webPreview.OpenGraph.Title == "" {
-						webPreview.OpenGraph.Title = attr[i-1].Val
-					}
-				}
-
-				if isPropertyKey(attr[i-1]) && attr[i-1].Val == "og:description" && isContentKey(attr[i]) {
-					if webPreview.OpenGraph.Description == "" {
-						webPreview.OpenGraph.Description = attr[i].Val
-					}
-				}
-				if isPropertyKey(attr[i]) && attr[i].Val == "og:description" && isContentKey(attr[i-1]) {
-					if webPreview.OpenGraph.Description == "" {
-						webPreview.OpenGraph.Description = attr[i-1].Val
-					}
-				}
-
-				if isPropertyKey(attr[i-1]) && attr[i-1].Val == "og:image" && isContentKey(attr[i]) {
-					if webPreview.OpenGraph.ImgURL == "" {
-						webPreview.OpenGraph.ImgURL = supplementImgURL(url, attr[i].Val)
-					}
-				}
-				if isPropertyKey(attr[i]) && attr[i].Val == "og:image" && isContentKey(attr[i-1]) {
-					if webPreview.OpenGraph.ImgURL == "" {
-						webPreview.OpenGraph.ImgURL = supplementImgURL(url, attr[i-1].Val)
-					}
-				}
-
-				if isPropertyKey(attr[i-1]) && attr[i-1].Val == "twitter:title" && isContentKey(attr[i]) {
-					if webPreview.Twitter.Title == "" {
-						webPreview.Twitter.Title = attr[i].Val
-					}
-				}
-				if isPropertyKey(attr[i]) && attr[i].Val == "twitter:title" && isContentKey(attr[i-1]) {
-					if webPreview.Twitter.Title == "" {
-						webPreview.Twitter.Title = attr[i-1].Val
-					}
-				}
-
-				if isPropertyKey(attr[i-1]) && attr[i-1].Val == "twitter:description" && isContentKey(attr[i]) {
-					if webPreview.Twitter.Description == "" {
-						webPreview.Twitter.Description = attr[i].Val
-					}
-				}
-				if isPropertyKey(attr[i]) && attr[i].Val == "twitter:description" && isContentKey(attr[i-1]) {
-					if webPreview.Twitter.Description == "" {
-						webPreview.Twitter.Description = attr[i-1].Val
-					}
-				}
-
-				if isPropertyKey(attr[i-1]) && attr[i-1].Val == "twitter:image" && isContentKey(attr[i]) {
-					fmt.Println("got img")
-					if webPreview.Twitter.ImgURL == "" {
-						webPreview.Twitter.ImgURL = supplementImgURL(url, attr[i].Val)
-					}
-				}
-				if isPropertyKey(attr[i]) && attr[i].Val == "twitter:image" && isContentKey(attr[i-1]) {
-					if webPreview.Twitter.ImgURL == "" {
-						webPreview.Twitter.ImgURL = supplementImgURL(url, attr[i-1].Val)
-					}
-				}
+func isGivenMeta(attrs []html.Attribute, lookup string) bool {
+	for i := 0; i < len(attrs); i++ {
+		if isNameKey(attrs[i]) || isPropertyKey(attrs[i]) {
+			if attrs[i].Val == lookup {
+				return true
 			}
 		}
 	}
+	return false
+}
+
+func isMetaItemprop(attrs []html.Attribute) bool {
+	for i := 0; i < len(attrs); i++ {
+		if isItempropKey(attrs[i]) && attrs[i].Val == "image" {
+			return true
+		}
+	}
+	return false
+}
+
+func extractMetaContentValue(attrs []html.Attribute) string {
+	for i := 0; i < len(attrs); i++ {
+		if isContentKey(attrs[i]) {
+			return attrs[i].Val
+		}
+	}
+	return ""
+}
+
+func isItempropKey(attr html.Attribute) bool {
+	return attr.Key == "itemprop"
 }
 
 func isPropertyKey(attr html.Attribute) bool {
@@ -185,6 +145,9 @@ func isContentKey(attr html.Attribute) bool {
 }
 
 func supplementImgURL(url string, imgURL string) string {
+	if imgURL == "" {
+		return imgURL
+	}
 	if len(imgURL) > 8 {
 		if imgURL[0:5] == "https" || imgURL[0:4] == "http" {
 			return imgURL

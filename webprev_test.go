@@ -5,13 +5,16 @@ import (
 )
 
 func TestPreview(t *testing.T) {
-	webPrev, err := Preview("https://telegram.org")
+	webPrev, err := Preview("https://basicbb.com")
 	if err != nil {
 		t.Errorf("Preview() err = %v; want nothing", err)
 	}
 	if webPrev.Generic.Title == "" {
 		t.Errorf("Preview() title = %v; want something", webPrev.Generic.Title)
 	}
+	//fmt.Println(webPrev.Generic.Title)
+	//fmt.Println(webPrev.Generic.Description)
+	//fmt.Println(webPrev.Generic.ImgURL)
 }
 
 func TestSupplementImgURL(t *testing.T) {
