@@ -23,10 +23,13 @@ jobs:
         run: |
           export GO111MODULE=on
           go get -v
-          go test -timeout=60s -v -covermode=count -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp
-          cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "_mock.go" > $GITHUB_WORKSPACE/profile.cov
+          go test
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v1.2.1
         with:
           version: v1.29
+
+      - name: Update package release sum
+        run: |
+          curl https://sum.golang.org/lookup/github.com/lalabuy948/webprev@"$(git describe --tags `git rev-list --tags --max-count=1`)"
